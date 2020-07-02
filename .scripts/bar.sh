@@ -1,41 +1,78 @@
 #!/bin/sh
-hddroot(){
-	hddroot="`df -h | awk 'NR==2{print $3, $5}'`"
-	echo -e "Disk: $hddroot"
+
+# Strict script
+set -e
+set -u
+
+hdd(){
+	hdd="`df -h | awk 'NR==2{print $5}'`"
+	echo -e "Disk: $hdd"
 }
 
-#mem(){
-#$ sysctl hw.physmem
-#$ sysctl hw | egrep 'hw.(phys|user|real)'
-#	mem="$(free | awk '/Mem/ {printf "%d MiB / %d MiB : %d%\n", $3 / 1024.0, $2 / 1024.0,  $3/$2 *100}')"
-#	echo -e "MEM : $mem"
-#}
+mem_rounded () {
+    mem_size=$1
+    chip_size=1
+    chip_guess=`echo "$mem_size / 8 - 1" | bc`
+    while [ $chip_guess != 0 ]
+        do
+                chip_guess=`echo "$chip_guess / 2" | bc`
+                chip_size=`echo "$chip_size * 2" | bc`
+    done
+    mem_round=`echo "( $mem_size / $chip_size + 1 ) * $chip_size" | bc`
+    echo $mem_round
+}
 
-brightness(){
+mem() {
+        mem_phys=`sysctl -n hw.physmem`
+        set +e
+        mem_hw=`mem_rounded $mem_phys`
+        set -e
+        sysctl_pagesize=`sysctl -n hw.pagesize`
+        mem_inactive=`echo "\`sysctl -n vm.stats.vm.v_inactive_count\` \
+	* $sysctl_pagesize" | bc`
+        mem_cache=`echo "\`sysctl -n vm.stats.vm.v_cache_count\` \
+	* $sysctl_pagesize" | bc`
+        mem_free=`echo "\`sysctl -n vm.stats.vm.v_free_count\` \
+	* $sysctl_pagesize" | bc`
+
+        mem_total=$mem_hw
+        mem_avail=`echo "$mem_inactive + $mem_cache + $mem_free" | bc`
+        mem_used=`echo "$mem_total - $mem_avail" | bc`
+
+        #printf "%7dMB [%3d%%]" `echo "$mem_used / ( 1024^2 )" | bc` `echo "$mem_used * 100 / $mem_total" | bc`
+        #printf "%7dMB [%3d%%]" `echo "$mem_avail / ( 1024^2 )" | bc` `echo "$mem_avail * 100 / $mem_total" | bc`
+	#printf "%7dMB [100%%]" `echo "$mem_total / ( 1024 * 1024 )" | bc`
+
+	#printf "RAM: Used: %dMB - %d%% Free: %dMB - %d%% Total: %dMB" `echo "$mem_used / ( 1024^2 )" | bc` \
+	#`echo "$mem_used * 100 / $mem_total" | bc` `echo "$mem_avail / ( 1024^2 )" | bc` `echo "$mem_avail * 100 / $mem_total" | bc` \
+	#`echo "$mem_total / ( 1024 * 1024 )" | bc` | xargs
+	printf "Memory: %d%%" `echo "$mem_used * 100 / $mem_total" | bc`
+}
+
+bri(){
 	brightness="`sysctl -n hw.acpi.video.lcd0.brightness`"
-	echo -e "Brightness: $brightness %"
+	#echo -e "Brightness: $brightness%"
+	printf "Brightness: %s%%" `echo "$brightness"`
 }
 
 cpu() {
-	cpu_use=`uptime`
-	IFS=',' read -ra avg_cpu_use_arr <<< "$avg_cpu_use"
-	avg_cpu_usae=""
-	echo -e "CPU: $cpu%"
+	cpu="`top -b -n 1 | grep -i "cpu" | head -n 1 | awk '{print $2 + $4}'`  "
+	printf "CPU: %s%%" `echo "$cpu"`
 }
 
 vol(){
-	# todo save 
+	# todo save into a file
 	vol="`mixer -s vol | awk '{ print $2 }'`"
-	echo -e "Volume: $vol %"
+	echo -e "Volume: $vol%"
 }
 
 dte() {
-	dte="`date +"%A, %B %d ~ %l:%M:%S %p CLT"`"
+	dte="`date +"%A, %B %d - %l:%M:%S %p CLT"`"
 	echo -e "$dte"
 }
 
 SLEEP_SEC=0.5
 while :; do
-	echo "`hddroot` || `vol` || `brightness` || `dte`" 
+	echo "`cpu` || `mem` || `hdd` || `vol` || `bri` || `dte`"
 	sleep $SLEEP_SEC
 done
