@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Strict script
-set -e
+#set -e causes the shell to exit when an unguarded statement evaluates to a false value (i have to disable because of cap lock function)
 set -u
 
 hdd(){
@@ -71,8 +71,26 @@ dte() {
 	echo -e "$dte"
 }
 
+bat() {
+	bat="`apm -l`"
+	printf "Battery: %s%%" `echo "$bat + 2" | bc`
+}
+
+layout() {
+	lay="`setxkbmap -print | awk -F"+" '/xkb_symbols/ {print $2}'`"
+	echo -e "Keyboard: $lay"
+}
+
+lock() {
+	cap_result=`xset q | grep -q 'Caps Lock: *on'`
+	cap="`[ $? == 0 ] && echo "yes" || echo "no"`"
+	num_result=`xset q | grep -q 'Num Lock: *on'`
+	num="`[ $? == 0 ] && echo "yes" || echo "no"`"
+	echo -e "Cap: $cap - Num: $num" 
+}
+
 SLEEP_SEC=0.5
 while :; do
-	echo "`cpu` || `mem` || `hdd` || `vol` || `bri` || `dte`"
+	echo "`cpu` || `mem` || `hdd` || `vol` || `bri` || `bat` || `layout` || `lock` || `dte`"
 	sleep $SLEEP_SEC
 done
