@@ -77,7 +77,8 @@ bat() {
 }
 
 layout() {
-	lay="`setxkbmap -print | awk -F"+" '/xkb_symbols/ {print $2}'`"
+	lay_result="`xset -q | grep -i "led mask" | grep -o "....1..."`"
+	lay="`[ -z $lay_result ] && echo "latam" || echo "es"`"
 	echo -e "Keyboard: $lay"
 }
 
