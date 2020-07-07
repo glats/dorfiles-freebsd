@@ -3,6 +3,7 @@
 # Strict script
 #set -e causes the shell to exit when an unguarded statement evaluates to a false value (i have to disable because of cap lock function)
 set -u
+#set -x
 
 hdd(){
 	hdd="`df -h | awk 'NR==2{print $5}'`"
@@ -56,24 +57,73 @@ bri(){
 }
 
 cpu() {
-	cpu="`top -b -n 1 | grep -i "cpu" | head -n 1 | awk '{print $2 + $4}'`  "
+	cpu="`top -b -n 1 | grep -i "cpu" | head -n 1 | awk '{print $2 + $4 + $6}'`  "
 	printf " %s%%" `echo "$cpu"`
 }
 
 vol(){
 	# todo save into a file
-	vol="`mixer -s vol | awk '{ print $2 }'`"
-	echo -e " $vol%"
+	vol="`mixer -s vol | awk -F' ' '{split($2,a,":"); print (a[1]+a[2])/2}'`"
+	if [ $vol -gt 70 ]; then
+	    icon=""
+	elif [ $vol -eq 0 ]; then
+	    icon=""
+	elif [ $vol -lt 30 ]; then
+	    icon=""
+	else
+	    icon=""
+	fi
+	printf "$icon %s%%" `echo "$vol"`
 }
 
 dte() {
-	dte="`date +"%A, %B %d - %l:%M:%S %p CLT"`"
+	dte=" `date +"%Y-%m-%d"`  `date +"%H:%M"`"
 	echo -e "$dte"
 }
 
 bat() {
-	bat="`apm -l`"
-	printf " %s%%" `echo "$bat" | bc`
+	#bat="`apm -l`"
+	#printf " %s%%" `echo "$bat" | bc`
+	capacity=97
+	current=`apm -l`
+	status=`apm -a`
+
+	if [ $status -eq 1 ] && [ $current -eq $capacity ]; then
+		printf " %s%%" `echo "$capacity" | bc`
+	fi
+	if [ $status -eq 0 ] && [ $current -ne $capacity ]; then
+		if [ $current -eq 100 ]; then
+		    icon=""
+		elif [ $current -gt 75 ]; then
+		    icon=""
+		elif [ $current -gt 50 ]; then
+		    icon=""
+		elif [ $current -lt 25 ]; then
+		    icon=""
+		elif [ $current -lt 5 ]; then
+		    icon=""
+		else
+		    icon=""
+		fi
+
+		printf "$icon %s%%" `echo "$current" | bc`
+	fi
+	
+	if [ $status = 1 ] && [ $current -ne $capacity ]; then
+		if [ $1 -eq 4 ]; then
+		    icon=""
+		elif [ $1 -eq 3 ]; then
+		    icon=""
+		elif [ $1 -eq 2 ]; then
+		    icon=""
+		elif [ $1 -eq 1 ]; then
+		    icon=""
+		else
+		    icon=""
+		fi
+		printf "$icon %s%%" `echo "$current" | bc`
+	fi
+
 }
 
 layout() {
@@ -84,14 +134,20 @@ layout() {
 
 lock() {
 	cap_result=`xset q | grep -q 'Caps Lock: *on'`
-	cap="`[ $? == 0 ] && echo "yes" || echo "no"`"
+	cap="`[ $? == 0 ] && echo "" || echo ""`"
 	num_result=`xset q | grep -q 'Num Lock: *on'`
-	num="`[ $? == 0 ] && echo "yes" || echo "no"`"
-	echo -e "Cap: $cap - Num: $num" 
+	num="`[ $? == 0 ] && echo "" || echo ""`"
+	echo -e "$cap a $num 1" 
 }
 
 SLEEP_SEC=0.5
+I=0
+BAT_ITER=4
 while :; do
-	echo "`cpu` || `mem` || `hdd` || `vol` || `bri` || `bat` || `layout` || `lock` || `dte`"
+	if [ $I -gt $BAT_ITER ]; then
+		I=0
+	fi
+	echo "`cpu`  `mem`  `hdd`  `vol`  `bri`  `bat $I`  `layout`  `lock`  `dte`"
+	I=`expr $I + 1`
 	sleep $SLEEP_SEC
 done
