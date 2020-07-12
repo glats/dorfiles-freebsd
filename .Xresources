@@ -20,6 +20,7 @@ URxvt.font: xft:monospace:pixelsize=12
 URxvt.allow_bold: true
 URxvt.mouseWheelScrollPage: true
 URxvt.cursorBlink: true
+URxvt*font: xft:Symbola:style=Regular:pixelsize=14
 ! Key Bindings
 ! ============
 
