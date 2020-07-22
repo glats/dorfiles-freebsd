@@ -14,27 +14,71 @@ MAX_LCD_BRIGHTNESS=100
 MAX_VOLUME=100
 OEM=$2
 DISPLAY_PIPE=/tmp/acpi_${OEM}_display
+VOL_LEVEL=/tmp/vol_${OEM}
+if [ ! -f $VOL_LEVEL ]
+then
+    VOL="`mixer -s vol | awk -F' ' '{split($2,a,":"); print (a[1]+a[2])/2}'`"
+    echo $VOL > $VOL_LEVEL
+fi
+MIC_LEVEL=/tmp/mic_${OEM}
+if [ ! -f $MIC_LEVEL ]
+then
+    VOL="`mixer -s mic | awk -F' ' '{split($2,a,":"); print (a[1]+a[2])/2}'`"
+    echo $VOL > $MIC_LEVEL
+fi
 case ${NOTIFY} in
     0x01)
-        LEVEL=`sysctl -n dev.acpi_${OEM}.0.bluetooth`
-        if [ "$LEVEL" = "1" ]
+        MUTE=`sysctl -n dev.acpi_${OEM}.0.mute`
+        if [ "$MUTE" = "1" ]
         then
-            sysctl dev.acpi_${OEM}.0.bluetooth=0
-            MESSAGE="bluetooth disabled"
+            cat $VOL_LEVEL | xargs mixer vol
+            sysctl dev.acpi_${OEM}.0.mute=0
+            MESSAGE="vol unmute"
         else
-            sysctl dev.acpi_${OEM}.0.bluetooth=1
-            MESSAGE="bluetooth enabled"
+            mixer vol 0
+            sysctl dev.acpi_${OEM}.0.mute=1
+            MESSAGE="vol mute"
         fi
         ;;
     0x02)
-        LEVEL=`sysctl -n dev.acpi_${OEM}.0.bluetooth`
-        if [ "$LEVEL" = "1" ]
+        mixer vol -5
+        ;;
+    0x03)
+        mixer vol +5
+        ;;
+    0x04)
+        LED=`sysctl -n dev.acpi_${OEM}.0.mic_led`
+        if [ "$LED" = "1" ]
         then
-            sysctl dev.acpi_${OEM}.0.bluetooth=0
-            MESSAGE="bluetooth disabled"
+            cat $MIC_LEVEL | xargs mixer mic
+            sysctl dev.acpi_${OEM}.0.mic_led=0
+            MESSAGE="mic unmute"
         else
-            sysctl dev.acpi_${OEM}.0.bluetooth=1
-            MESSAGE="bluetooth enabled"
+            mixer mic 0
+            sysctl dev.acpi_${OEM}.0.mic_led=1
+            MESSAGE="mic mute"
+        fi
+        ;;
+    0x05)
+        BRI=`sysctl -n hw.acpi.video.lcd0.brightness`
+        R=`echo $BRI-5 | bc`
+        sysctl hw.acpi.video.lcd0.brightness=$R
+        MESSAGE="brightness up"
+    0x06)
+        BRI=`sysctl -n hw.acpi.video.lcd0.brightness`
+        R=`echo $BRI+5 | bc`
+        sysctl hw.acpi.video.lcd0.brightness=$R
+        MESSAGE="brightness down"
+        ;;
+    0x08)
+        WLAN=`sysctl -n dev.acpi_${OEM}.0.wlan`
+        if [ "$WLAN" = "1" ]
+        then
+            sysctl dev.acpi_${OEM}.0.wlan=0
+            MESSAGE="wlan down"
+        else
+            sysctl dev.acpi_${OEM}.0.wlan=1
+            MESSAGE="wlan up"
         fi
         ;;
 esac
