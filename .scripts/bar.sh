@@ -81,7 +81,7 @@ dte() {
 }
 
 bat() {
-	capacity=97
+	capacity=100
 	current=`apm -l`
 	status=`apm -a`
 
@@ -131,7 +131,7 @@ lock() {
 	cap="`[ $? == 0 ] && echo "" || echo ""`"
 	num_result=`xset q | grep -q 'Num Lock: *on'`
 	num="`[ $? == 0 ] && echo "" || echo ""`"
-	echo -e "+@fg=7;$cap+@fg=0; a +@fg=7;$num+@fg=0; 1"
+	echo -e "+@fg=7;$cap+@fg=0; a +@fg=7;$num+@fg=0; 1" 
 }
 
 SLEEP_SEC=0.1
@@ -141,7 +141,7 @@ while :; do
 	if [ $I -gt $BAT_ITER ]; then
 		I=0
 	fi
-	echo "`cpu`  `mem`  `hdd`  `vol`  `bri`  `bat $I`  `layout`  `lock`  `dte`"
+	echo "`vol`  `bri`  `bat $I`  `layout`  `lock`  `dte`"
 	I=`expr $I + 1`
 	sleep $SLEEP_SEC
 done

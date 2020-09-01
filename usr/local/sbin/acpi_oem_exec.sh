@@ -6,12 +6,6 @@ then
 fi
 NOTIFY=`echo $1`
 LOGGER="logger"
-CALC="bc"
-BC_PRECOMMANDS="scale=2"
-ECHO="echo"
-CUT="cut"
-MAX_LCD_BRIGHTNESS=100
-MAX_VOLUME=100
 OEM=$2
 DISPLAY_PIPE=/tmp/acpi_${OEM}_display
 VOL_LEVEL=/tmp/vol_${OEM}
@@ -42,9 +36,11 @@ case ${NOTIFY} in
         ;;
     0x02)
         mixer vol -5
+        MESSAGE="vol down"
         ;;
     0x03)
         mixer vol +5
+        MESSAGE="vol up"
         ;;
     0x04)
         LED=`sysctl -n dev.acpi_${OEM}.0.mic_led`
@@ -64,6 +60,7 @@ case ${NOTIFY} in
         R=`echo $BRI-5 | bc`
         sysctl hw.acpi.video.lcd0.brightness=$R
         MESSAGE="brightness up"
+	;;
     0x06)
         BRI=`sysctl -n hw.acpi.video.lcd0.brightness`
         R=`echo $BRI+5 | bc`
